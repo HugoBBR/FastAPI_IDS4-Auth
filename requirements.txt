@@ -1,0 +1,10 @@
+fastapi[all]
+uvicorn
+gunicorn
+pydantic
+
+pytest
+pytest-asyncio
+black
+flake8
+isort
