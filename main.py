@@ -1,17 +1,25 @@
-from fastapi import FastAPI,Depends
+from configparser import ConfigParser
+import os
+from fastapi import FastAPI,Depends,Response,status,Security
 from fastapi.security import OAuth2AuthorizationCodeBearer,OpenIdConnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.openapi import docs
+import urllib.parse
+from validator import VerifyToken
+from fastapi_auth0 import Auth0, Auth0User
+from dotenv import load_dotenv
 
+load_dotenv()
 
-
+auth0Domain = os.getenv('AUTH0_DOMAIN')
+auth0APIAudince=os.getenv('AUTH0_API_AUDIENCE')
+print(auth0Domain)
 swagger_init_oauth={"clientID":"FastAPI_POC_Swagger"}
-scopesIDS={
-    "FastAPI":"FastAPI"
-}
 
-oauth2_scheme=OAuth2AuthorizationCodeBearer(tokenUrl="https://webapi-auth-server-dev.azurewebsites.net/connect/token",authorizationUrl="https://webapi-auth-server-dev.azurewebsites.net/connect/authorize",scopes=scopesIDS)
-app = FastAPI(dependencies=[Depends(oauth2_scheme)],swagger_ui_init_oauth=swagger_init_oauth)
+
+auth=Auth0(domain=auth0Domain,api_audience=auth0APIAudince,scopes={'api:read':''})
+app = FastAPI(swagger_ui_init_oauth=swagger_init_oauth)
+
 
 app.add_middleware(
     CORSMiddleware,
@@ -21,11 +29,15 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-@app.get("/info")
-async def get_info():
-    return "This is data from the API"
+@app.get("/user",dependencies=[Depends(auth.implicit_scheme)])
+async def get_user(user:Auth0User=Security(auth.get_user, scopes=['api:read'])):
+    return {"message":f'{user}'}
 
+@app.get("/info",dependencies=[Depends(auth.implicit_scheme)])
+async def get_info(user:Auth0User=Security(auth.get_user, scopes=['api:read'])):
+    return "This is data from the api"
 
 @app.get("/token/")
-async def read_items(token: str = Depends(oauth2_scheme)):
+async def read_items(token: str = Depends(auth.implicit_scheme)):
     return {"token": token}
+

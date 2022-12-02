@@ -2,6 +2,9 @@ fastapi[all]
 uvicorn
 gunicorn
 pydantic
+authlib
+PyJWT
+fastapi-auth0
 
 pytest
 pytest-asyncio
